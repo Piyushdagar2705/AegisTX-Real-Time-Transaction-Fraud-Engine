@@ -89,6 +89,41 @@ cd frontend        && npm test       # Jest + React Testing Library
 ## Roadmap & Production Enhancements
 
 - **Token & Key Security:** Migrate token storage from `localStorage` to `HttpOnly` cookies, implement refresh token rotation/revocation, and switch from a shared HS256 secret to asymmetric keys (JWKS) with a dedicated secrets manager.
-- **Database & Ledger:** Replace Hibernate `ddl-auto: update` with versioned Flyway migrations and introduce a formal double-entry ledger with audit logging.
+- **Database & Ledger:** Replace Hiber# AegisTX — Real-Time Transaction Fraud Engine
+
+A real-time transaction fraud detection engine built with Java 21 and Spring Boot—combining a **rules + velocity + weighted-score pipeline** that evaluates and decides **PASS / BLOCK** in under 200ms.
+
+Engineered with production practices: hexagonal architecture, asynchronous Apache Kafka processing, idempotency, an anti-corruption layer for cross-service ledger events, end-to-end OpenTelemetry distributed tracing, Prometheus SLO alerting, and a full unit-to-Testcontainers test pyramid.
+
+[![CI](https://github.com/Piyushdagar2705/AegisTX-Real-Time-Transaction-Fraud-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/Piyushdagar2705/AegisTX-Real-Time-Transaction-Fraud-Engine/actions/workflows/ci.yml)
+[![Java](https://img.shields.io/badge/Java-21-orange)](https://openjdk.org/projects/jdk/21/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3-green)](https://spring.io/projects/spring-boot)
+
+## Architecture
+
+AegisTX follows **Hexagonal Architecture (Ports & Adapters)** so the core domain pipeline has zero framework dependencies and remains fully unit-testable without external infrastructure.
+
+```text
+                 ┌────────────┐   202 Accepted
+   client ─POST─▶│   REST     │──────────────────────▶ caller polls GET /{id}
+                 │ Controller │
+                 └─────┬──────┘
+                       │ publish
+                 ┌─────▼───────────────┐
+                 │ Kafka                │  transactions.incoming (3 partitions)
+                 └─────┬───────────────┘
+                       │ consume (manual ack, idempotent)
+        ┌──────────────▼───────────────────────────────────────┐
+        │  Fraud Pipeline (Domain — Pure Java)                  │
+        │                                                       │
+        │  RulesEngine ─▶ VelocityChecker ─▶ RiskScorer ─▶ DecisionEngine
+        │   (blacklist,    (Redis INCR+TTL)   (weighted)    (threshold)
+        │    limit, geo)                                        │
+        └───────┬──────────────────┬───────────────┬───────────┘
+                │ audit             │ if BLOCK      │ if BLOCK
+          ┌─────▼─────┐      ┌──────▼──────┐   ┌────▼──────────┐
+          │ PostgreSQL│      │   Kafka     │   │  WebSocket    │
+          │ audit_log │      │  .flagged   │   │  /topic/...   │
+          └───────────┘      └─────────────┘   └───────────────┘nate `ddl-auto: update` with versioned Flyway migrations and introduce a formal double-entry ledger with audit logging.
 - **Resilience & Observability:** Add gateway-level rate limiting, graceful fallback handling for Redis outages, OpenAPI/Swagger documentation, and parallel concurrency load tests.
 - **Cloud Deployment:** Containerized deployment pipeline targeting AWS (ECS/EC2).
